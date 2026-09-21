@@ -1,0 +1,11 @@
+# Normalize line endings across OS (developers on Windows/macOS/Linux)
+* text=auto eol=lf
+
+# Lock binary/artifact types as binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.lock binary

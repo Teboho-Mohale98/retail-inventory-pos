@@ -1,0 +1,80 @@
+rules_version = '2';
+
+// ---------------------------------------------------------------------------
+// Firestore Security Rules for Retail Inventory & POS
+//
+// Deployment: `firebase deploy --only firestore:rules`
+//
+// NOTE: Role-based gating below relies on the `users/{uid}` profile document
+// created at registration. Lock this down further for production:
+//   - restrict product writes to admin
+//   - restrict stock_movements writes to receiving_bay / store_picker contexts
+//   - never allow client `delete` unless the UI genuinely needs it
+// ---------------------------------------------------------------------------
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ----------------------------- helpers -------------------------------
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function role() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isAdmin()   { return signedIn() && role() == 'admin'; }
+    function isReceiving(){ return signedIn() && role() in ['admin', 'receiving_bay']; }
+    function isPicker()  { return signedIn() && role() in ['admin', 'store_picker']; }
+
+    // ------------------------------ users --------------------------------
+    match /users/{uid} {
+      // Users can read/write their own profile; admins manage everyone.
+      allow read: if signedIn();
+      allow write: if request.auth.uid == uid || isAdmin();
+    }
+
+    // ---------------------------- products -------------------------------
+    match /products/{sku} {
+      allow read: if signedIn();
+      // HARDENING: in production restrict writes to isAdmin() and route all
+      // stock changes through the transactional server path.
+      allow create, update, delete: if signedIn();
+      allow list: if signedIn();
+    }
+
+    // ------------------------- stock movements ---------------------------
+    match /stock_movements/{id} {
+      // The audit trail is immutable once written — block updates/deletes.
+      allow read, create: if signedIn();
+      allow update, delete: if false;
+    }
+
+    match /stock_movements {
+      allow list: if signedIn();
+    }
+
+    // -------------------------- purchase orders --------------------------
+    match /purchase_orders/{po} {
+      allow read, list: if isPicker() || isReceiving();
+      allow create, update: if isAdmin() || isReceiving();
+      allow delete: if isAdmin();
+    }
+
+    // ------------------------------ receipts ------------------------------
+    match /receipts/{receipt} {
+      allow read: if isPicker() || isReceiving();
+      allow create: if isPicker();   // only store operators create sales
+      allow update, delete: if false;
+    }
+
+    // ---------------------------- counters -------------------------------
+    // Only the server transaction increments counters; block direct client
+    // tampering (numbers must stay monotonic).
+    match /counters/{name} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+  }
+}
