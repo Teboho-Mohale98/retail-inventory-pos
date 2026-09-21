@@ -18,28 +18,6 @@ import { getFirestore, type Firestore } from "firebase/firestore";
 const EMULATOR_AUTH_HOST = process.env.NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST;
 const EMULATOR_FIRESTORE_HOST = process.env.NEXT_PUBLIC_FIREBASE_FIRESTORE_EMULATOR_HOST;
 
-/**
- * Basic sanity check for the environment configuration. Instead of failing
- * silently with a cryptic Firebase error, we surface a clear message telling
- * the developer exactly which variable is missing.
- */
-function assertConfig() {
-  const required: Array<keyof typeof firebaseConfig> = [
-    "apiKey",
-    "authDomain",
-    "projectId",
-  ];
-
-  const missing = required.filter((key) => !firebaseConfig[key]);
-
-  if (missing.length > 0) {
-    throw new Error(
-      `Firebase is missing required config values: ${missing.join(", ")}.\n` +
-        "Create a `.env.local` file from `.env.example` and populate it with the values from your Firebase Console."
-    );
-  }
-}
-
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? "",
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ?? "",
@@ -48,6 +26,42 @@ const firebaseConfig = {
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ?? "",
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID ?? "",
 };
+
+/**
+ * Returns the reason Firebase cannot start (e.g. missing `NEXT_PUBLIC_*`
+ * variables) or `null` when the configuration is complete.
+ *
+ * This is the single anti-crash guard: every hook checks it BEFORE touching
+ * the SDK, so a misconfigured deploy renders a friendly setup screen instead
+ * of blowing up into a blank "Application error" page.
+ */
+export function getFirebaseConfigError(): string | null {
+  const required: Array<keyof typeof firebaseConfig> = ["apiKey", "authDomain", "projectId"];
+  const missing = required.filter((key) => !firebaseConfig[key]);
+  if (missing.length === 0) return null;
+
+  return (
+    `Firebase is missing required config values: ${missing.join(", ")}.\n` +
+    "Create a `.env.local` file from `.env.example`, or on Vercel set the six " +
+    "`NEXT_PUBLIC_FIREBASE_*` environment variables, then redeploy. " +
+    "Restart `npm run dev` after editing `.env.local`."
+  );
+}
+
+/** True when the web SDK can be initialized safely. */
+export function isFirebaseConfigured(): boolean {
+  return getFirebaseConfigError() === null;
+}
+
+/**
+ * Throws a descriptive error when the environment config is incomplete.
+ * Called internally by `getDb()` / `getAuthService()` — hooks guard with
+ * `getFirebaseConfigError()` first so this is the last line of defense.
+ */
+function assertConfig(): void {
+  const error = getFirebaseConfigError();
+  if (error) throw new Error(error);
+}
 
 // ---------------------------------------------------------------------------
 // Singleton initialization

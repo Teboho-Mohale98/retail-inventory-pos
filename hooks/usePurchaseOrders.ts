@@ -11,7 +11,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { collection, onSnapshot, query, orderBy, limit } from "firebase/firestore";
-import { getDb } from "@/lib/firebase";
+import { getDb, getFirebaseConfigError, isFirebaseConfigured } from "@/lib/firebase";
 import {
   closePurchaseOrder,
   evaluateThreeWayMatch,
@@ -58,6 +58,12 @@ export function usePurchaseOrders(maxOrders = 50): UsePurchaseOrders {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    if (!isFirebaseConfigured()) {
+      setActionError(new Error(getFirebaseConfigError() ?? "Firebase is not configured."));
+      setLoading(false);
+      return;
+    }
+
     const db = getDb();
     const unsub = onSnapshot(
       query(collection(db, "purchase_orders"), orderBy("createdAt", "desc"), limit(maxOrders)),

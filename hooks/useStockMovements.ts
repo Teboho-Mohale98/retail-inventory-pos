@@ -10,7 +10,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { collection, onSnapshot, query, orderBy, limit } from "firebase/firestore";
-import { getDb } from "@/lib/firebase";
+import { getDb, getFirebaseConfigError, isFirebaseConfigured } from "@/lib/firebase";
 import {
   collectDailyDemand,
   movementFromSnapshot,
@@ -43,6 +43,12 @@ export function useStockMovements(maxMovements = 200): UseStockMovements {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    if (!isFirebaseConfigured()) {
+      setError(new Error(getFirebaseConfigError() ?? "Firebase is not configured."));
+      setLoading(false);
+      return;
+    }
+
     const db = getDb();
     const unsub = onSnapshot(
       query(collection(db, "stock_movements"), orderBy("timestamp", "desc"), limit(maxMovements)),

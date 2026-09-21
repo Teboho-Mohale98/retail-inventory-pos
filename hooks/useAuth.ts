@@ -10,7 +10,7 @@
 
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, type User } from "firebase/auth";
-import { getAuthService } from "@/lib/firebase";
+import { getAuthService, getFirebaseConfigError, isFirebaseConfigured } from "@/lib/firebase";
 import { fetchUserProfile } from "@/lib/auth";
 import type { UserProfile } from "@/lib/types";
 
@@ -41,6 +41,14 @@ export function useAuth(): UseAuthState {
 
   useEffect(() => {
     let active = true;
+
+    // Guard BEFORE touching the SDK: a missing/deployed-without-env Firebase
+    // config must not crash the app — it surfaces as `error` for the UI.
+    if (!isFirebaseConfigured()) {
+      setError(new Error(getFirebaseConfigError() ?? "Firebase is not configured."));
+      setLoading(false);
+      return;
+    }
 
     const unsubscribeAuth = onAuthStateChanged(getAuthService(), async (firebaseUser) => {
       if (!firebaseUser) {

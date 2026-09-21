@@ -324,6 +324,7 @@ Knobs live in `lib/constants.ts` (`DEMAND_LOOKBACK_DAYS`, `DEMAND_FORECAST_HORIZ
 
 | Symptom | Fix |
 | --- | --- |
+| `Application error: a client-side exception has occurred` on Vercel | The six `NEXT_PUBLIC_FIREBASE_*` vars are missing/empty at build time — add them in **Vercel → Project → Settings → Environment Variables** (Production + Preview), trigger **Redeploy**, and refresh. A setup screen now appears instead of the crash when this is misconfigured. |
 | `Firebase is missing required config values…` | `.env.local` incomplete or server not restarted — restart `npm run dev`. |
 | `auth/configuration-not-found` | Auth email/password provider not enabled in the console. |
 | Data never syncs / blank tables | Firestore in Production mode with no deployed rules — deploy `firestore.rules` or switch to Test mode temporarily. |

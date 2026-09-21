@@ -18,7 +18,7 @@
 
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { collection, onSnapshot, query, orderBy, limit } from "firebase/firestore";
-import { getDb } from "@/lib/firebase";
+import { getDb, getFirebaseConfigError, isFirebaseConfigured } from "@/lib/firebase";
 import { productFromSnapshot } from "@/lib/products";
 import { movementFromSnapshot } from "@/lib/stockMovements";
 import { collectDailyDemand } from "@/lib/stockMovements";
@@ -56,6 +56,13 @@ export function useInventory(maxMovements = 200): UseInventory {
   const [offline, setOffline] = useState(false);
 
   useEffect(() => {
+    if (!isFirebaseConfigured()) {
+      setError(new Error(getFirebaseConfigError() ?? "Firebase is not configured."));
+      setLoading(false);
+      setOffline(true);
+      return;
+    }
+
     const db = getDb();
 
     // Track connectivity so the UI can show a graceful "offline mode" banner

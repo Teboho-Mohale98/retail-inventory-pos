@@ -33,7 +33,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 const ROLES: UserRole[] = ["admin", "receiving_bay", "store_picker"];
 
 export default function LoginPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, error: authError } = useAuth();
   const router = useRouter();
 
   const [mode, setMode] = useState<"signin" | "register">("signin");
@@ -48,12 +48,13 @@ export default function LoginPage() {
     if (user && !loading) router.replace("/dashboard");
   }, [user, loading, router]);
 
-  // If Firebase env wasn't configured, surface the exact problem.
-  useEffect(() => {
-    if (!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) {
-      setError("Firebase is not configured. Create `.env.local` from `.env.example` and restart `npm run dev`.");
-    }
-  }, []);
+  // If Firebase env wasn't configured, both hooks will surface it; this extra
+  // guard keeps the alert visible even before the auth listener settles.
+  const envError = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    ? null
+    : "Firebase is not configured. Create `.env.local` from `.env.example` and restart `npm run dev`.";
+
+  const effectiveError = envError ?? error ?? (authError ? authError.message : null);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,10 +98,10 @@ export default function LoginPage() {
                 <TabsTrigger value="register">Register</TabsTrigger>
               </TabsList>
 
-              {error && (
+              {effectiveError && (
                 <Alert variant="destructive" className="mt-4">
                   <AlertTitle>Unable to continue</AlertTitle>
-                  <AlertDescription>{error}</AlertDescription>
+                  <AlertDescription>{effectiveError}</AlertDescription>
                 </Alert>
               )}
 
