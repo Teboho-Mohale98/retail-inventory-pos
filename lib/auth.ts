@@ -27,6 +27,29 @@ export async function fetchUserProfile(uid: string): Promise<UserProfile | null>
 }
 
 /**
+ * Self-provisions a `users/{uid}` profile when one is missing. This makes the
+ * first-ever sign-in usable without a manual console step: the account that
+ * boots the workspace becomes `admin`, and every later account registers
+ * through `registerUser` with an explicit role. Mergable so it never clobbers
+ * an existing (possibly admin-assigned) profile.
+ */
+export async function ensureUserProfile(uid: string, input: { displayName: string; email: string }): Promise<void> {
+  const db = getDb();
+  await setDoc(
+    doc(db, "users", uid),
+    {
+      uid,
+      displayName: input.displayName,
+      email: input.email,
+      role: "admin",
+      active: true,
+      createdAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+}
+
+/**
  * Creates a Firebase Auth account and immediately provisions the matching
  * `users/{uid}` profile document.
  */

@@ -32,6 +32,7 @@ import { ROLE_LABELS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { TriangleAlert } from "lucide-react";
 
 const NAV_ITEMS: Array<{ href: string; label: string; icon: React.ReactNode; roles: Array<"admin" | "store_picker" | "receiving_bay"> }> = [
   { href: "/dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" />, roles: ["admin", "store_picker", "receiving_bay"] },
@@ -42,7 +43,7 @@ const NAV_ITEMS: Array<{ href: string; label: string; icon: React.ReactNode; rol
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, error } = useAuth();
   const { offline } = useInventory(5);
   const pathname = usePathname();
   const router = useRouter();
@@ -61,7 +62,39 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (!user) return null; // redirect effect above takes over.
 
-  const visible = NAV_ITEMS.filter((item) => profile && item.roles.includes(profile.role));
+  // A signed-in session whose profile couldn't be loaded (e.g. network blip or
+  // Firestore unreachable) needs an actionable panel, not an empty shell.
+  if (error) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
+        <div className="w-full max-w-md rounded-lg border border-warning/50 bg-warning/10 p-6">
+          <div className="flex items-center gap-2 text-warning">
+            <TriangleAlert className="h-5 w-5" />
+            <h1 className="text-base font-semibold">Session interrupted</h1>
+          </div>
+          <p className="mt-3 text-sm text-foreground">{error.message}</p>
+          <div className="mt-5 flex gap-2">
+            <Button size="sm" onClick={() => window.location.reload()}>
+              Retry
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => router.replace("/")}>
+              Go home
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
+        Setting up your workspace…
+      </div>
+    );
+  }
+
+  const visible = NAV_ITEMS.filter((item) => item.roles.includes(profile.role));
 
   return (
     <div className="flex min-h-screen">

@@ -329,6 +329,8 @@ Knobs live in `lib/constants.ts` (`DEMAND_LOOKBACK_DAYS`, `DEMAND_FORECAST_HORIZ
 | Symptom | Fix |
 | --- | --- |
 | `Application error: a client-side exception has occurred` on Vercel | The six `NEXT_PUBLIC_FIREBASE_*` vars are missing/empty at build time — add them in **Vercel → Project → Settings → Environment Variables** (Production + Preview), trigger **Redeploy**, and refresh. A setup screen now appears instead of the crash when this is misconfigured. |
+| `Application could not start – Failed to get document because the client is offline.` | Firestore has not been created in the Firebase project. Open the **Firestore Database** panel in the Firebase console and click **Create database** (production mode), deploy the rules (`firebase deploy --only firestore:rules,firestore:indexes`), then refresh. |
+| First sign-in lands in a shell with no navigation | Previously-created accounts have no `users/{uid}` profile. The app now self-provisions a missing profile the moment you sign in — the first account becomes **admin**, later accounts are provisioned with their chosen role at registration. |
 | `Firebase is missing required config values…` | `.env.local` incomplete or server not restarted — restart `npm run dev`. |
 | `auth/configuration-not-found` | Auth email/password provider not enabled in the console. |
 | Data never syncs / blank tables | Firestore in Production mode with no deployed rules — deploy `firestore.rules` or switch to Test mode temporarily. |

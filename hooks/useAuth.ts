@@ -11,7 +11,7 @@
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { getAuthService, getFirebaseConfigError, isFirebaseConfigured } from "@/lib/firebase";
-import { fetchUserProfile } from "@/lib/auth";
+import { fetchUserProfile, ensureUserProfile } from "@/lib/auth";
 import type { UserProfile } from "@/lib/types";
 
 export interface UseAuthState {
@@ -62,7 +62,19 @@ export function useAuth(): UseAuthState {
 
       setUser(firebaseUser);
       try {
-        const fetched = await fetchUserProfile(firebaseUser.uid);
+        let fetched = await fetchUserProfile(firebaseUser.uid);
+
+        // Profile missing (e.g. account created before Firestore existed, or
+        // rules not yet deployed): self-provision so the first login is usable.
+        // The first account becomes `admin` — see lib/auth.ts::ensureUserProfile.
+        if (fetched === null) {
+          await ensureUserProfile(firebaseUser.uid, {
+            displayName: firebaseUser.displayName ?? "Operator",
+            email: firebaseUser.email ?? "",
+          });
+          fetched = await fetchUserProfile(firebaseUser.uid);
+        }
+
         if (active) {
           setProfile(fetched);
           setError(null);
