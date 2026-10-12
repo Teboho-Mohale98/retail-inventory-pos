@@ -4,6 +4,10 @@ A production-ready **Retail Inventory & POS Tracking** application that replaces
 
 ![stack](https://img.shields.io/badge/Next.js-14-black) ![ts](https://img.shields.io/badge/TypeScript-strict-blue) ![firebase](https://img.shields.io/badge/Firebase-Firestore%2FAuth-orange) ![deploy](https://img.shields.io/badge/deploy-Vercel-black)
 
+![Retail Inventory & POS — real-time cloud ERP dashboard](screenshots/preview.png)
+
+**Live demo:** <https://retail-inventory-pos.vercel.app>
+
 ---
 
 ## Table of contents
